@@ -1,0 +1,14 @@
+pipeline:  
+  - catalog: sg
+    name: http-access
+    spec:
+      vpcId: "add-a-vpc"
+      tags:
+        - name: "purpose"
+          value: "http-server"
+      rules:
+        - protocol: tcp
+          port: 80
+          access: allow
+
+

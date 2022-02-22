@@ -1,0 +1,5 @@
+.idea
+vendor
+requirements-local.yaml
+events/index.go
+
