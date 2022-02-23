@@ -21,11 +21,9 @@ func ManualRun(nodes int) {
 			return err
 		}
 
-		err = k8s.CreateEksCluster(ctx, k8s.ClusterParams{
+		err = k8s.CreateEksCluster(ctx, k8s.EksCluster{
 			Name:            "example-cluster",
 			Version:         "1.20",
-			DesiredCapacity: nodes,
-			InstanceType:    "t3.medium",
 			NodePublicKey:   "",
 		})
 

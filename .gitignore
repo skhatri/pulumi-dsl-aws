@@ -2,4 +2,4 @@
 vendor
 requirements-local.yaml
 events/index.go
-
+kubeconfig.yaml

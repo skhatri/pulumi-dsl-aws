@@ -12,9 +12,17 @@ func processRequirements(ctx *pulumi.Context) error {
 	var reader *os.File
 	var ferr error
 	fileName := "requirements.yaml"
-	if _, localErr := os.Stat("requirements-local.yaml"); localErr == nil {
-		fileName = "requirements-local.yaml"
+	stackFile := fmt.Sprintf("%s-%s", os.Getenv("PULUMI_PROJECT"), os.Getenv("PULUMI_STACK"))
+	if stackFile != "" {
+		if _, stackErr := os.Stat(fmt.Sprintf("%s.yaml", stackFile)); stackErr == nil {
+			fileName = fmt.Sprintf("%s.yaml", stackFile)
+		}
+	} else {
+		if _, localErr := os.Stat("requirements-local.yaml"); localErr == nil {
+			fileName = "requirements-local.yaml"
+		}
 	}
+	fmt.Println("loading requirements from", fileName)
 	reader, ferr = os.OpenFile(fileName, os.O_RDONLY, 0644)
 
 	if ferr != nil {

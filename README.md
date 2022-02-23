@@ -57,4 +57,3 @@ pulumi destroy -s $(whoami)/example/aws-example --yes
 pulumi stack rm -s $(whoami)/example/aws-example --yes
 pulumi stack rm aws-example
 ```
-
