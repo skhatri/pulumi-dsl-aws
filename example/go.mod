@@ -2,7 +2,7 @@ module github.com/skhatri/pulumi-aws-example
 
 go 1.17
 
-require github.com/skhatri/pulumi-dsl-aws v0.1.1
+require github.com/skhatri/pulumi-dsl-aws v0.1.2
 
 require (
 	github.com/blang/semver v3.5.1+incompatible // indirect
