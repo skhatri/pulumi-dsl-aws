@@ -21,8 +21,7 @@ func main() {
 While the intention of this project is to create custom DSL for a specific use case, you can also use function call directly.
 An example function ```dsl.ManualRun(2)``` will create a 2 node EKS cluster.  
 
-#### initialise stack
-
+#### create entrypoint
 create a Pulumi.yaml file
 
 ```
@@ -31,7 +30,8 @@ runtime: go
 description: Infrastructure Example
 ```
 
-
+### initialising stack
+These can be run in your new setup or inside the example folder
 ```
 brew install pulumi
 pulumi stack init aws-example

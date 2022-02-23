@@ -6,6 +6,8 @@ import (
 	"github.com/pulumi/pulumi-aws/sdk/v4/go/aws/ec2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/skhatri/go-collections/pkg/maps"
+	"strconv"
+	"strings"
 )
 
 type SecurityGroupSpec struct {
@@ -16,13 +18,42 @@ type SecurityGroupSpec struct {
 
 type Rule struct {
 	Protocol    string  `json:"protocol" yaml:"protocol"`
-	Port        int     `json:"port" yaml:"port"`
+	Port        string  `json:"port" yaml:"port"`
 	Access      string  `json:"access" yaml:"access"`
 	Description string  `json:"description" yaml:"description"`
 	Outbound    *bool   `json:"outbound" yaml:"outbound"`
 	Cidr        *string `json:"cidr" yaml:"cidr"`
 }
 
+const (
+	MIN_PORT = 0
+	MAX_PORT = 65535
+)
+
+func parsePort(portValue string) (int, int) {
+	fromPort := MIN_PORT
+	toPort := MAX_PORT
+	if portValue != "" {
+		switch portValue {
+		case "all":
+			fromPort = MIN_PORT
+			toPort = MAX_PORT
+		case "*":
+			fromPort = MIN_PORT
+			toPort = MAX_PORT
+		default:
+			port := strings.Split(portValue, "-")
+			if len(port) == 2 {
+				fromPort, _ = strconv.Atoi(port[0])
+				toPort, _ = strconv.Atoi(port[1])
+			} else {
+				fromPort, _ = strconv.Atoi(port[0])
+				toPort = fromPort
+			}
+		}
+	}
+	return fromPort, toPort
+}
 func SecurityGroupHandler(ctx *pulumi.Context, pipelineItem PipelineItem) error {
 	buff := bytes.Buffer{}
 	m := maps.MapByStringKey(pipelineItem.Spec)
@@ -46,12 +77,16 @@ func SecurityGroupHandler(ctx *pulumi.Context, pipelineItem PipelineItem) error 
 		if rule.Cidr != nil && *rule.Cidr != "" {
 			cidr = *rule.Cidr
 		}
+		fromPort, toPort := parsePort(rule.Port)
 		isOutbound := rule.Outbound != nil && *rule.Outbound == true
+
 		if rule.Access == "allow" {
+
 			if isOutbound {
 				egress = append(egress, ec2.SecurityGroupEgressArgs{
 					Protocol: pulumi.String(rule.Protocol),
-					ToPort:   pulumi.Int(rule.Port),
+					FromPort: pulumi.Int(fromPort),
+					ToPort:   pulumi.Int(toPort),
 					CidrBlocks: pulumi.StringArray{
 						pulumi.String(cidr),
 					},
@@ -59,8 +94,8 @@ func SecurityGroupHandler(ctx *pulumi.Context, pipelineItem PipelineItem) error 
 			} else {
 				ingress = append(ingress, ec2.SecurityGroupIngressArgs{
 					Protocol: pulumi.String(rule.Protocol),
-					ToPort:   pulumi.Int(rule.Port),
-					FromPort: pulumi.Int(rule.Port),
+					FromPort: pulumi.Int(fromPort),
+					ToPort:   pulumi.Int(toPort),
 					CidrBlocks: pulumi.StringArray{
 						pulumi.String(cidr),
 					},

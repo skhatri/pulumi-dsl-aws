@@ -1,8 +1,8 @@
-pipeline:  
+pipeline:
   - catalog: sg
     name: http-access
     spec:
-      vpcId: "add-a-vpc"
+      vpcId: "<your-vpc-id>"
       tags:
         - name: "purpose"
           value: "http-server"
@@ -10,5 +10,36 @@ pipeline:
         - protocol: tcp
           port: 80
           access: allow
+        - protocol: tcp
+          port: 22
+          access: allow
+        - protocol: tcp
+          access: allow
+          outbound: true
 
-
+  - catalog: ec2
+    name: ec2-http-server
+    spec:
+      ami: ami-0a4e637babb7b0a86
+      userData: |
+        #!/bin/bash
+        yum update -y
+        echo "your key" | tee -a /home/ec2-user/.ssh/authorized_keys
+        yum install -y httpd
+        systemctl start httpd
+        systemctl enable httpd
+        usermod -a -G apache ec2-user
+        echo "server $(hostname -f) says hello to you" |tee /var/www/html/index.html
+        chown -R ec2-user:apache /var/www
+        chmod 2775 /var/www
+        find /var/www -type d -exec sudo chmod 2775 {} \;
+      tags:
+        - name: "role"
+          value: "http-server"
+        - name: "purpose"
+          value: "http-server"
+      nodes: 1
+      instanceType: t2.micro
+      securityGroups:
+        - http-access
+      publicIp: true
