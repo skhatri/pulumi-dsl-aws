@@ -7,6 +7,8 @@ Run from example folder or create the following:
 ### create a stack.go
 
 ```
+package main
+
 import (
 _ "github.com/skhatri/pulumi-dsl-aws/pkg/dsl"
 )
@@ -21,12 +23,26 @@ An example function ```dsl.ManualRun(2)``` will create a 2 node EKS cluster.
 
 #### initialise stack
 
+create a Pulumi.yaml file
+
+```
+name: example
+runtime: go
+description: Infrastructure Example
+```
+
+
 ```
 brew install pulumi
 pulumi stack init aws-example
 pulumi stack select $(whoami)/example/aws-example
 pulumi config set aws:region ap-southeast-2
 ```
+A Pulumi.aws-example.yaml file will be created
+
+### Provide Requirements
+
+See [example/requirements.yaml](example/requirements.yaml) for an example that brings up a http-server using t2.micro instance type
 
 ### pulumi up
 ```

@@ -3,7 +3,6 @@ package core
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/pulumi/pulumi-aws/sdk/v4/go/aws/ec2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/skhatri/go-collections/pkg/maps"
@@ -16,10 +15,12 @@ type SecurityGroupSpec struct {
 }
 
 type Rule struct {
-	Protocol    string `json:"protocol" yaml:"protocol"`
-	Port        int    `json:"port" yaml:"port"`
-	Access      string `json:"access" yaml:"access"`
-	Description string `json:"description" yaml:"description"`
+	Protocol    string  `json:"protocol" yaml:"protocol"`
+	Port        int     `json:"port" yaml:"port"`
+	Access      string  `json:"access" yaml:"access"`
+	Description string  `json:"description" yaml:"description"`
+	Outbound    *bool   `json:"outbound" yaml:"outbound"`
+	Cidr        *string `json:"cidr" yaml:"cidr"`
 }
 
 func SecurityGroupHandler(ctx *pulumi.Context, pipelineItem PipelineItem) error {
@@ -31,7 +32,6 @@ func SecurityGroupHandler(ctx *pulumi.Context, pipelineItem PipelineItem) error 
 	}
 	sgSpec := SecurityGroupSpec{}
 	json.NewDecoder(&buff).Decode(&sgSpec)
-	fmt.Println("securitygroup spec", sgSpec)
 	rules := sgSpec.Rules
 
 	tags := make(pulumi.StringMap, 0)
@@ -40,17 +40,33 @@ func SecurityGroupHandler(ctx *pulumi.Context, pipelineItem PipelineItem) error 
 	}
 
 	ingress := make(ec2.SecurityGroupIngressArray, 0)
+	egress := make(ec2.SecurityGroupEgressArray, 0)
+	cidr := "0.0.0.0/0"
 	for _, rule := range rules {
+		if rule.Cidr != nil && *rule.Cidr != "" {
+			cidr = *rule.Cidr
+		}
+		isOutbound := rule.Outbound != nil && *rule.Outbound == true
 		if rule.Access == "allow" {
-			ingress = append(ingress, ec2.SecurityGroupIngressArgs{
-				Protocol: pulumi.String(rule.Protocol),
-				ToPort:   pulumi.Int(rule.Port),
-				FromPort: pulumi.Int(rule.Port),
-				CidrBlocks: pulumi.StringArray{
-					pulumi.String("0.0.0.0/0"),
-				},
-				Description: pulumi.String(rule.Description),
-			})
+			if isOutbound {
+				egress = append(egress, ec2.SecurityGroupEgressArgs{
+					Protocol: pulumi.String(rule.Protocol),
+					ToPort:   pulumi.Int(rule.Port),
+					CidrBlocks: pulumi.StringArray{
+						pulumi.String(cidr),
+					},
+				})
+			} else {
+				ingress = append(ingress, ec2.SecurityGroupIngressArgs{
+					Protocol: pulumi.String(rule.Protocol),
+					ToPort:   pulumi.Int(rule.Port),
+					FromPort: pulumi.Int(rule.Port),
+					CidrBlocks: pulumi.StringArray{
+						pulumi.String(cidr),
+					},
+					Description: pulumi.String(rule.Description),
+				})
+			}
 		}
 	}
 
@@ -59,8 +75,8 @@ func SecurityGroupHandler(ctx *pulumi.Context, pipelineItem PipelineItem) error 
 		VpcId:   pulumi.String(sgSpec.VpcId),
 		Tags:    tags,
 		Ingress: ingress,
+		Egress:  egress,
 	}
-	fmt.Println(securityGroupArgs)
 	_, err := ec2.NewSecurityGroup(ctx, pipelineItem.Name, &securityGroupArgs)
 	if err != nil {
 		return err

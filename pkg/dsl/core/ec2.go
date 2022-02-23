@@ -64,10 +64,11 @@ func Ec2Handler(ctx *pulumi.Context, pipelineItem PipelineItem) error {
 		}
 		publicIp := ec2Spec.PublicIp != nil && *ec2Spec.PublicIp
 		args.AssociatePublicIpAddress = pulumi.Bool(publicIp)
-		_, err = ec2.NewInstance(ctx, name, &args)
+		instance, err := ec2.NewInstance(ctx, name, &args)
 		if err != nil {
 			return err
 		}
+		ctx.Export(fmt.Sprintf("ec2-%d", i), instance.PublicIp)
 	}
 	return err
 }
