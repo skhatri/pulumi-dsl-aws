@@ -1,26 +1,31 @@
 pipeline:
   - catalog: eks
-    name: control-cluster
+    name: mycluster-1
     spec:
       cluster:
-        name: control-cluster
+        name: mycluster-1
         version: "1.20"
+        vpcId: "vpc-a019fexx"
+        subnetId: "subnet-1f0f1wxx,subnet-eb789wxx"
+        instanceType: "t3.medium"
+        size: 3
         nodeGroups:
           - name: "jobs"
-            size: 1
+            size: 2
             instanceType: t3.medium
             spotPrice: "0.1"
             taint:
               - "node-role.kubernetes.io/workload": "job:NoExecute"
           - name: "tools"
-            size: 1
+            size: 2
             instanceType: t3.medium
             taint:
-              - "node-role.kubernetes.io/workload": "tools:NoExecute"
-          - name: "workers"
-            size: 1
-            instanceType: t3.medium
+              - "node-role.kubernetes.io/workload": "job:NoExecute"
 
+          - name: "workers"
+            size: 4
+            instanceType: t3.medium
         tags:
-          tenancy: "controller"
+          - name: "cluster-name"
+            value: "mycluster-1"
         publicKey: ""

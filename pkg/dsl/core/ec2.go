@@ -54,10 +54,12 @@ func Ec2Handler(ctx *pulumi.Context, pipelineItem PipelineItem) error {
 	for i := 0; i < ec2Spec.Nodes; i++ {
 		name := fmt.Sprintf("%s-%s", pipelineItem.Name, pulumi.String(i))
 		args := ec2.InstanceArgs{
-			Ami:                 pulumi.String(ec2Spec.Ami),
-			InstanceType:        pulumi.String(ec2Spec.InstanceType),
-			Tags:                tags,
-			VpcSecurityGroupIds: pulumi.ToStringArray(securityGroupIds),
+			Ami:          pulumi.String(ec2Spec.Ami),
+			InstanceType: pulumi.String(ec2Spec.InstanceType),
+			Tags:         tags,
+		}
+		if len(securityGroupIds) != 0 {
+			args.VpcSecurityGroupIds = pulumi.ToStringArray(securityGroupIds)
 		}
 		if ec2Spec.UserData != "" {
 			args.UserData = pulumi.String(ec2Spec.UserData)

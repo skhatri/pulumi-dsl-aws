@@ -1,7 +1,10 @@
 package k8s
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/pulumi/pulumi-eks/sdk/go/eks"
+	k8s "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"strings"
 )
@@ -13,6 +16,7 @@ type NodeGroupParams struct {
 	InstanceType string            `json:"instanceType" yaml:"instanceType"`
 	SpotPrice    string            `json:"spotPrice" yaml:"spotPrice"`
 	PublicKey    bool              `json:"publicKey" yaml:"publicKey"`
+	PublicIp     *bool             `json:"publicIp" yaml:"publicIp"`
 }
 
 type EksCluster struct {
@@ -23,6 +27,8 @@ type EksCluster struct {
 	SubnetId      string            `json:"subnetId" yaml:"subnetId"`
 	Tags          map[string]string `json:"tags" yaml:"tags"`
 	NodeGroups    []NodeGroupParams `json:"nodeGroups" yaml:"nodeGroups"`
+	Size          *int              `json:"size" yaml:"size"`
+	InstanceType  *string           `json:"instanceType" yaml:"instanceType"`
 }
 
 func CreateEksCluster(ctx *pulumi.Context, clusterParams EksCluster) error {
@@ -32,21 +38,24 @@ func CreateEksCluster(ctx *pulumi.Context, clusterParams EksCluster) error {
 	if clusterParams.Version != "" {
 		clusterArgs.Version = pulumi.String(clusterParams.Version)
 	}
-
-	if len(clusterParams.NodeGroups) == 0 {
-		clusterArgs.DesiredCapacity = pulumi.Int(1)
-		clusterArgs.MinSize = pulumi.Int(1)
-		clusterArgs.MaxSize = pulumi.Int(1)
-		clusterArgs.InstanceType = pulumi.String("t3.medium")
-	} else {
-		clusterArgs.SkipDefaultNodeGroup = pulumi.Bool(true)
+	fmt.Println("total node groups", len(clusterParams.NodeGroups))
+	if clusterParams.Size != nil && *clusterParams.Size > 0 {
+		size := *clusterParams.Size
+		clusterArgs.DesiredCapacity = pulumi.Int(size)
+		clusterArgs.MinSize = pulumi.Int(size)
+		clusterArgs.MaxSize = pulumi.Int(size)
+		instanceType := "t3.medium"
+		if clusterParams.InstanceType != nil {
+			instanceType = *clusterParams.InstanceType
+		}
+		clusterArgs.InstanceType = pulumi.String(instanceType)
 	}
 
 	if clusterParams.VpcId != "" {
 		clusterArgs.VpcId = pulumi.String(clusterParams.VpcId)
 	}
 	if clusterParams.SubnetId != "" {
-		clusterArgs.SubnetIds = pulumi.StringArray{pulumi.String(clusterParams.SubnetId)}
+		clusterArgs.SubnetIds = pulumi.ToStringArray(strings.Split(clusterParams.SubnetId, ","))
 	}
 
 	if clusterParams.NodePublicKey != "" {
@@ -71,29 +80,55 @@ func CreateEksCluster(ctx *pulumi.Context, clusterParams EksCluster) error {
 		return err
 	}
 
+	eksProvider, err := k8s.NewProvider(ctx, "eksProvider", &k8s.ProviderArgs{
+		Kubeconfig: cluster.Kubeconfig.ApplyT(
+			func(config interface{}) (string, error) {
+				b, err := json.Marshal(config)
+				if err != nil {
+					return "", err
+				}
+				return string(b), nil
+			}).(pulumi.StringOutput),
+	})
+	if err != nil {
+		return err
+	}
+	eksProviders := pulumi.ProviderMap(map[string]pulumi.ProviderResource{
+		"kubernetes": eksProvider,
+	})
 	for _, nodeGroupParam := range clusterParams.NodeGroups {
 		nodeGroupArgs := eks.NodeGroupArgs{
-			InstanceType:    pulumi.String(nodeGroupParam.InstanceType),
-			DesiredCapacity: pulumi.Int(nodeGroupParam.Size),
-			MinSize:         pulumi.Int(nodeGroupParam.Size),
-			MaxSize:         pulumi.Int(nodeGroupParam.Size),
-			Cluster:         cluster.Core,
+			InstanceType:       pulumi.String(nodeGroupParam.InstanceType),
+			DesiredCapacity:    pulumi.Int(nodeGroupParam.Size),
+			MinSize:            pulumi.Int(nodeGroupParam.Size),
+			MaxSize:            pulumi.Int(nodeGroupParam.Size),
+			Cluster:            cluster.Core,
+			Version:            pulumi.String(clusterParams.Version),
+			NodeRootVolumeSize: pulumi.Int(100),
+			NodeSubnetIds:      pulumi.ToStringArray(strings.Split(clusterParams.SubnetId, ",")),
+			Labels:             pulumi.StringMap{"topology.kubernetes.io/node-group-name": pulumi.String(nodeGroupParam.Name)},
 		}
+
 		if clusterParams.NodePublicKey != "" && nodeGroupParam.PublicKey {
 			nodeGroupArgs.NodePublicKey = pulumi.String(clusterParams.NodePublicKey)
 		}
+		taintMap := make(map[string]eks.TaintInput, 0)
+
 		for k, v := range nodeGroupParam.Taint {
 			parts := strings.Split(v, ":")
 			effect := "PreferNoSchedule"
 			if len(parts) == 2 {
 				effect = parts[1]
 			}
-			nodeGroupArgs.Taints = eks.TaintMap{k: eks.TaintArgs{
+			taintMap[k] = eks.TaintArgs{
 				Value:  pulumi.String(k),
 				Effect: pulumi.String(effect),
-			}}
+			}
 		}
-		_, nodeGroupErr := eks.NewNodeGroup(ctx, nodeGroupParam.Name, &nodeGroupArgs)
+		nodeGroupArgs.Taints = eks.TaintMap(taintMap)
+		publicIp := nodeGroupParam.PublicIp != nil && *nodeGroupParam.PublicIp
+		nodeGroupArgs.NodeAssociatePublicIpAddress = pulumi.Bool(publicIp)
+		_, nodeGroupErr := eks.NewNodeGroup(ctx, nodeGroupParam.Name, &nodeGroupArgs, eksProviders)
 		if nodeGroupErr != nil {
 			return nodeGroupErr
 		}

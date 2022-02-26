@@ -43,4 +43,3 @@ pipeline:
       securityGroups:
         - http-access
       publicIp: true
-

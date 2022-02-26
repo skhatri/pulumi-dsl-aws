@@ -1,6 +1,27 @@
 ### test
 
-#### setup
+### quick start
+
+
+#### EC2 example
+Run stack.sh to create Pulumi yaml files and initialise stack
+```
+./stack.sh example ec2
+pulumi up
+```
+
+#### EKS example
+Switch to eks stack with the following
+```
+./stack.sh example eks
+pulumi up
+```
+
+stack.sh creates pulumi files. The DSL code looks for requirements file by the name "<stack-name>-<project>.yaml".
+If such a file is missing, it will default to requirements-local.yaml and requirements.yaml if local override is not found.
+
+### pulumi commands
+#### setup using pulumi commands
 ```
 pulumi stack init aws-example
 pulumi stack select $(whoami)/example/aws-example
