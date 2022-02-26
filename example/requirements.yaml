@@ -24,7 +24,7 @@ pipeline:
       userData: |
         #!/bin/bash
         yum update -y
-        echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDYNukqxK8xwQza7nGlwDcbN9NDW7LXeWy+/BtLXifANwPapODT14m7T0zDw1G+lLHHOYAuy5E+KY+6CUcB1dVFP8m66oJgXIealBOOF5it2KNSL9jBTe9aYl06z/E/ZICboQ9cHEPO0IbZA44mzpGa0KnlfDDoYdOk5PqRun3dUdhFSUQ+jTQwfII+rmpp0iFn//KnsTkCXrwcXY3wR5HHqMtQHfm2MYRQS4Z7z6PkZ2Yb39JQdErckvA/JfL2TFYVtR4vR+CdUJ9AMz9FBBF/6Wm/vFO1k0SUdGOtgH1FVMYfSiIE+fXiGe4+j531UMP7WbrxMmilvVDR31W/+LtrlcyFcsnPx5XDGjqBvGHwHJxRPFV9BY0T5uzAHgtS9ZYRdj/h9bv9TbXFxKGR9ohTJmUfUXbr+mTty/bg8Xn/dkite887sA6eSJDowMYZK3N4CjOGV+8WhaSBYenjwz4pJxlisWjEJuwLnBjmNLokZCI9mB1OdfivR/OBjsY0osU= servlet2@msn.com" | tee -a /home/ec2-user/.ssh/authorized_keys
+        echo "" | tee -a /home/ec2-user/.ssh/authorized_keys
         yum install -y httpd
         systemctl start httpd
         systemctl enable httpd
