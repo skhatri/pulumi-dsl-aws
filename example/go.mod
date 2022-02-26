@@ -2,7 +2,7 @@ module github.com/skhatri/pulumi-aws-example
 
 go 1.17
 
-require github.com/skhatri/pulumi-dsl-aws v0.1.2
+require github.com/skhatri/pulumi-dsl-aws v0.1.4
 
 require (
 	github.com/blang/semver v3.5.1+incompatible // indirect
@@ -28,8 +28,10 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pulumi/pulumi-aws/sdk/v4 v4.15.0 // indirect
 	github.com/pulumi/pulumi-eks/sdk v0.37.1 // indirect
-	github.com/pulumi/pulumi-kubernetes/sdk/v3 v3.0.0 // indirect
-	github.com/pulumi/pulumi/sdk/v3 v3.7.0 // indirect
+	github.com/pulumi/pulumi-kubernetes/sdk/v3 v3.16.0 // indirect
+	github.com/pulumi/pulumi/sdk/v3 v3.25.0 // indirect
+	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20180611051255-d3107576ba94 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/skhatri/go-collections v0.0.0-20220218113722-d901efc4aa4c // indirect
@@ -44,7 +46,7 @@ require (
 	go.uber.org/atomic v1.6.0 // indirect
 	golang.org/x/crypto v0.0.0-20200317142112-1b76d66859c6 // indirect
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9 // indirect
-	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect
+	golang.org/x/sys v0.0.0-20210817190340-bfb29a6856f2 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/genproto v0.0.0-20200608115520-7c474a2e3482 // indirect
 	google.golang.org/grpc v1.29.1 // indirect
