@@ -35,10 +35,6 @@ type EksCluster struct {
 }
 
 func CreateEksCluster(ctx *pulumi.Context, clusterParams EksCluster) error {
-	err, role1, instanceProfile1 := createRoleAndInstanceProfile(ctx)
-	if err != nil {
-		return err
-	}
 
 	var clusterArgs *eks.ClusterArgs
 
@@ -59,8 +55,7 @@ func CreateEksCluster(ctx *pulumi.Context, clusterParams EksCluster) error {
 			instanceType = *clusterParams.InstanceType
 		}
 		clusterArgs.InstanceType = pulumi.String(instanceType)
-		clusterArgs.InstanceRoles = iam.RoleArray{role1}
-		clusterArgs.InstanceProfileName = instanceProfile1.Name
+
 	} else {
 		clusterArgs.SkipDefaultNodeGroup = pulumi.Bool(true)
 	}
@@ -94,33 +89,39 @@ func CreateEksCluster(ctx *pulumi.Context, clusterParams EksCluster) error {
 		return err
 	}
 
-	eksProvider, err := k8s.NewProvider(ctx, "eksProvider", &k8s.ProviderArgs{
-		Cluster: clusterArgs.Name,
-		Kubeconfig: cluster.Kubeconfig.ApplyT(
-			func(config interface{}) (string, error) {
-				b, err := json.Marshal(config)
-				if err != nil {
-					return "", err
-				}
-				return string(b), nil
-			}).(pulumi.StringOutput),
-	})
-	if err != nil {
-		return err
-	}
+	if len(clusterParams.NodeGroups) > 0 {
+		err, role1, instanceProfile1 := createRoleAndInstanceProfile(ctx)
+		if err != nil {
+			return err
+		}
+		eksProvider, err := k8s.NewProvider(ctx, "eksProvider", &k8s.ProviderArgs{
+			Cluster: clusterArgs.Name,
+			Kubeconfig: cluster.Kubeconfig.ApplyT(
+				func(config interface{}) (string, error) {
+					b, err := json.Marshal(config)
+					if err != nil {
+						return "", err
+					}
+					return string(b), nil
+				}).(pulumi.StringOutput),
+		})
+		if err != nil {
+			return err
+		}
 
-	eksProviders := pulumi.ProviderMap(map[string]pulumi.ProviderResource{
-		"provider": eksProvider,
-	})
+		eksProviders := pulumi.ProviderMap(map[string]pulumi.ProviderResource{
+			"provider": eksProvider,
+		})
 
-	err = createNodeGroups(ctx, clusterParams, cluster, instanceProfile1, eksProviders)
-	if err != nil {
-		return err
-	}
+		err = createNodeGroups(ctx, clusterParams, cluster, instanceProfile1, eksProviders)
+		if err != nil {
+			return err
+		}
 
-	err = createManagedNodeGroups(ctx, clusterParams, cluster, role1, eksProviders)
-	if err != nil {
-		return err
+		err = createManagedNodeGroups(ctx, clusterParams, cluster, role1, eksProviders)
+		if err != nil {
+			return err
+		}
 	}
 
 	ctx.Export("kubeconfig", cluster.Kubeconfig)
